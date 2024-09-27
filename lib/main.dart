@@ -35,9 +35,17 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  String valor = 'valor';
+  String? valor;
 
-  void _atualizarPreco() async {
+  late Future<Map> _precoFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _precoFuture = _atualizarPreco();
+  }
+
+  Future<Map> _atualizarPreco() async {
 
     String url = 'https://blockchain.info/ticker';
     http.Response response;
@@ -48,15 +56,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
     Map<String, dynamic> brlData = retorno['BRL'];
     
-    String quinzeM = brlData['15m'].toString();
-    String last = brlData['last'].toString();
+    // String quinzeM = brlData['15m'].toString();
+    // String last = brlData['last'].toString();
     String buy = brlData['buy'].toString();
-    String sell = brlData['sell'].toString();
-    String symbol = brlData['symbol'].toString();
+    // String sell = brlData['sell'].toString();
+    // String symbol = brlData['symbol'].toString();
 
     setState(() {
       valor = buy;
     });
+
+    return retorno;
   }
 
   @override
@@ -74,11 +84,29 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
             Image.asset('lib/images/bitcoin.png'),
-            Text(
-              'R\$ $valor',
-              style: TextStyle(
-                fontSize: 32,
-              ),
+            FutureBuilder<Map>(
+              future: _precoFuture,
+              builder: (context, snapshot) {
+                switch (snapshot.connectionState) {
+                  case ConnectionState.none:
+                  case ConnectionState.waiting:
+                    return Center(child: CircularProgressIndicator());
+                  case ConnectionState.active:
+                  case ConnectionState.done:
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Erro: ${snapshot.error}'));
+                    } else if (snapshot.hasData) {
+                      return Text(
+                        'R\$ $valor',
+                        style: TextStyle(
+                          fontSize: 32,
+                        )
+                      );
+                    } else {
+                      return Center(child: Text('Nenhum dado disponível'));
+                    }
+                }
+              }
             ),
             TextButton(
               style: ButtonStyle(
